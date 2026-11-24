@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تحذير</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; font-family: monospace; color:#0f0; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; }
+  #start { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#000; z-index:10; }
+  #start button { font-size:22px; padding:16px 28px; background:#111; color:#0f0; border:2px solid #0f0; cursor:pointer; }
+  #hack { display:none; position:fixed; inset:0; z-index:5; }
+  #msg { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; z-index:6; background:rgba(0,0,0,.75); border:3px solid red; padding:24px; color:red; font-size:28px; animation: blink .5s infinite; }
+  #log { position:fixed; left:10px; bottom:10px; font-size:14px; z-index:6; direction:ltr; text-align:left; max-height:40%; overflow:hidden; }
+  @keyframes blink { 50% { opacity:.3; } }
+  #reveal { display:none; position:fixed; inset:0; z-index:20; background:#fff; color:#000; align-items:center; justify-content:center; flex-direction:column; font-size:40px; text-align:center; font-family:sans-serif; }
+</style>
+</head>
+<body>
+
+<div id="start"><button id="go">اضغط للمتابعة</button></div>
+
+<div id="hack">
+  <canvas id="rain"></canvas>
+  <div id="msg">⚠️ تم اختراق جهازك ⚠️<br><small>جاري سحب الملفات...</small></div>
+  <div id="log"></div>
+</div>
+
+<div id="reveal">😂 هذا مقلب! ما انهكر شي 😂<div style="font-size:22px;margin-top:12px">جهازك سليم تمام</div></div>
+
+<script>
+const go = document.getElementById('go');
+const start = document.getElementById('start');
+const hack = document.getElementById('hack');
+const reveal = document.getElementById('reveal');
+const log = document.getElementById('log');
+
+// صوت إنذار بسيط يتولد من المتصفح، بدون أي ملفات خارجية
+function alarm() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  gain.gain.value = 0.5;
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start();
+  let hi = true;
+  const t = setInterval(() => { osc.frequency.value = hi ? 900 : 500; hi = !hi; }, 250);
+  return () => { clearInterval(t); osc.stop(); };
+}
+
+// مطر الأحرف الأخضر
+function matrix() {
+  const c = document.getElementById('rain');
+  const x = c.getContext('2d');
+  c.width = innerWidth; c.height = innerHeight;
+  const cols = Math.floor(c.width / 16);
+  const drops = Array(cols).fill(1);
+  const chars = '01ABCDEF#$%&@';
+  return setInterval(() => {
+    x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(0,0,c.width,c.height);
+    x.fillStyle = '#0f0'; x.font = '16px monospace';
+    drops.forEach((y,i) => {
+      x.fillText(chars[Math.floor(Math.random()*chars.length)], i*16, y*16);
+      if (y*16 > c.height && Math.random() > .975) drops[i] = 0;
+      drops[i]++;
+    });
+  }, 40);
+}
+
+// سطور وهمية تطلع كأنها عملية اختراق
+const lines = ['Connecting to server...','Bypassing firewall...','Access granted','Copying contacts...','Reading messages...','Uploading photos...','Accessing camera...','Downloading passwords...','System compromised'];
+function fakeLog() {
+  let i = 0;
+  return setInterval(() => {
+    log.innerHTML += lines[i % lines.length] + ' [' + Math.floor(Math.random()*100) + '%]<br>';
+    if (log.children.length > 12) log.innerHTML = '';
+    i++;
+  }, 400);
+}
+
+go.onclick = () => {
+  start.style.display = 'none';
+  hack.style.display = 'block';
+  if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  const stopAlarm = alarm();
+  const m = matrix();
+  const l = fakeLog();
+  // بعد 10 ثواني ينكشف المقلب تلقائيًا، غيّر الرقم إذا تبي وقت ثاني
+  setTimeout(() => {
+    stopAlarm(); clearInterval(m); clearInterval(l);
+    hack.style.display = 'none';
+    reveal.style.display = 'flex';
+    if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen();
+  }, 10000);
+};
+</script>
+</body>
+</html>
